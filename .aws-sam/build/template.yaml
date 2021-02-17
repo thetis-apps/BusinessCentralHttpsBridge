@@ -1,0 +1,140 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: A bridge from the IMS event bus to a Business Central HTTP/S endpoint.
+Transform:
+- AWS::Serverless-2016-10-31
+Metadata:
+  AWS::ServerlessRepo::Application:
+    Name: thetis-ims-business-central-https-bridge
+    Description: Application for sending events from Thetis IMS to Business Central
+    Author: thetis-apps
+    SpdxLicenseId: Apache-2.0
+    LicenseUrl: ../../LICENSE.txt
+    ReadmeUrl: ../../README.md
+    Labels:
+    - thetis-ims
+    HomePageUrl: https://github.com/thetis-apps/BusinessCentralHttpsBridge
+    SemanticVersion: '0.0.4'
+    SourceCodeUrl: https://github.com/thetis-apps/BusinessCentralHttpsBridge
+Parameters:
+  ContextId:
+    Type: String
+    Description: Only bridge events regarding context with this id.
+    MinLength: '1'
+  EndpointURL:
+    Type: String
+    Description: Send all events to this address using POST.
+    MinLength: '1'
+Resources:
+  Topic:
+    Type: AWS::SNS::Topic
+    Properties:
+      DisplayName: Dispatcher of events from Thetis IMS
+  Transformer:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: Function that runs when a delivery note is created.
+      Runtime: nodejs12.x
+      Handler: src/handlers/handler.transform
+      Policies:
+      - AmazonSNSFullAccess
+      Environment:
+        Variables:
+          Topic:
+            Ref: Topic
+      Events:
+        Request:
+          Type: EventBridgeRule
+          Properties:
+            Pattern:
+              source:
+              - public.thetis-ims.com
+              detail-type:
+              - documentCreated
+              detail:
+                contextId:
+                - Ref: ContextId
+                documentType:
+                - DELIVERY_NOTE
+      MemorySize: 2048
+      Timeout: 300
+      DeadLetterQueue:
+        Type: SQS
+        TargetArn:
+          Fn::GetAtt:
+          - DeadLetterQueue
+          - Arn
+      CodeUri: Transformer
+  Subscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      TopicArn:
+        Ref: Topic
+      Protocol: HTTPS
+      RawMessageDelivery: true
+      Endpoint:
+        Ref: EndpointURL
+      RedrivePolicy:
+        deadLetterTargetArn:
+          Fn::GetAtt:
+          - DeadLetterQueue
+          - Arn
+      DeliveryPolicy:
+        healthyRetryPolicy:
+          minDelayTarget: 20
+          maxDelayTarget: 300
+          numRetries: 20
+          numNoDelayRetries: 3
+          numMinDelayRetries: 3
+          numMaxDelayRetries: 3
+          backoffFunction: exponential
+        throttlePolicy:
+          maxReceivesPerSecond: 10
+  DeadLetterQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      PolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal: '*'
+          Action: sqs:SendMessage
+          Resource:
+            Fn::GetAtt:
+            - DeadLetterQueue
+            - Arn
+          Condition:
+            ArnEquals:
+              aws:SourceArn:
+                Ref: Topic
+      Queues:
+      - Ref: DeadLetterQueue
+  DeadLetterQueue:
+    Type: AWS::SQS::Queue
+    Properties: {}
+  Alarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: Alarm when any message is moved to the dead letter queue.
+      AlarmActions:
+      - Ref: IncidentTopic
+      ComparisonOperator: GreaterThanThreshold
+      EvaluationPeriods: 1
+      MetricName: ApproximateNumberOfMessagesVisible
+      Period: 60
+      Namespace: AWS/SQS
+      Threshold: '0'
+      Unit: Count
+      Dimensions:
+      - Name: QueueName
+        Value:
+          Fn::GetAtt:
+          - DeadLetterQueue
+          - QueueName
+      TreatMissingData: notBreaching
+      Statistic: Maximum
+  IncidentTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      Subscription:
+      - Endpoint: lmp@thetis-apps.com
+        Protocol: email
+      DisplayName: Incidents to be handled by Thetis Devops.

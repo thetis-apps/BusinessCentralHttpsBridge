@@ -1,0 +1,21 @@
+{
+    "version": "0",
+    "id": "9a0d5895-6d9b-257e-2c90-01dbe0f38a51",
+    "detail-type": "documentCreated",
+    "source": "public.thetis-ims.com",
+    "account": "170069103691",
+    "time": "2020-12-03T20:38:24Z",
+    "region": "eu-west-1",
+    "resources": [],
+    "detail": {
+        "eventId": "084d99b3-7e32-4f80-bac0-32a5cf85cf20",
+        "documentType": "DELIVERY_NOTE",
+        "shipmentId": 61719264,
+        "subscriberId": "379",
+        "contextId": "550",
+        "documentId": 61726387,
+        "eventType": "documentCreated",
+        "userId": 19384215,
+        "shipmentNumber": "DK157367"
+    }
+}

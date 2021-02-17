@@ -1,0 +1,10 @@
+version = 0.1
+[default]
+[default.deploy]
+[default.deploy.parameters]
+stack_name = "TestBCHttpsBridge"
+s3_bucket = "aws-sam-cli-managed-default-samclisourcebucket-1q52gionhjeg3"
+s3_prefix = "TestBCHttpsBridge"
+region = "eu-west-1"
+capabilities = "CAPABILITY_IAM"
+parameter_overrides = "ContextId=\"550\" EndpointURL=\"https://test.hest.best\""
