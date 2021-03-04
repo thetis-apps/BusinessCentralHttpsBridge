@@ -1,7 +1,7 @@
 var AWS = require('aws-sdk');
 AWS.config.update({region:'eu-west-1'});
 
-var SNS = new AWS.SNS({apiVersion: '2010-03-31'});
+const axios = require('axios');
 
 exports.transform = async (event, x) => {
     
@@ -14,12 +14,8 @@ exports.transform = async (event, x) => {
     message.documentId = detail.documentId;
     message.shipmentId = detail.shipmentId;
 
-    let params = {
-        Message: JSON.stringify(message),
-        TopicArn: process.env.Topic
-    };
-
-    await SNS.publish(params).promise();
+    let endpointURL = process.env.EndpointURL;
+    await axios.post(endpointURL, message, { headers: { "Content-Type": "application/json" }});
     
     return "DONE";
-}
+};

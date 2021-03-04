@@ -1,32 +1,20 @@
-# This is the SAM template that represents the architecture of your serverless application
-# https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-template-basics.html
-
-# The AWSTemplateFormatVersion identifies the capabilities of the template
-# https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/format-version-structure.html
 AWSTemplateFormatVersion: 2010-09-09
-Description: >-
-  BusinessCentralHttpsBridge
-
-# Transform section specifies one or more macros that AWS CloudFormation uses to process your template
-# https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/transform-section-structure.html
+Description: A bridge from the IMS event bus to a Business Central HTTP/S endpoint.
 Transform:
 - AWS::Serverless-2016-10-31
-
-# Metadata to use for the publishing to the SAR
 Metadata:
   AWS::ServerlessRepo::Application:
     Name: thetis-ims-business-central-https-bridge
     Description: Application for sending events from Thetis IMS to Business Central
     Author: thetis-apps
     SpdxLicenseId: Apache-2.0
-    LicenseUrl: LICENSE.txt
-    ReadmeUrl: README.md
-    Labels: ['thetis-ims']
+    LicenseUrl: s3://aws-sam-cli-managed-default-samclisourcebucket-1q52gionhjeg3/4612b8d5aa75b9b9936c9b7b9e6c7e82
+    ReadmeUrl: s3://aws-sam-cli-managed-default-samclisourcebucket-1q52gionhjeg3/a3324e02a8032c5af35d216d3636310e
+    Labels:
+    - thetis-ims
     HomePageUrl: https://github.com/thetis-apps/BusinessCentralHttpsBridge
-    SemanticVersion: 0.0.2
+    SemanticVersion: '0.0.2'
     SourceCodeUrl: https://github.com/thetis-apps/BusinessCentralHttpsBridge
-    
-Description: A bridge from the IMS event bus to a Business Central HTTP/S endpoint.
 Parameters:
   ContextId:
     Type: String
@@ -69,8 +57,7 @@ Resources:
           Fn::GetAtt:
           - DeadLetterQueue
           - Arn
-
-  # Our standard monitoring setup
+      CodeUri: s3://aws-sam-cli-managed-default-samclisourcebucket-1q52gionhjeg3/46043c8ff5928b0f8bdb511c1fa11ad8
   DeadLetterQueue:
     Type: AWS::SQS::Queue
     Properties: {}

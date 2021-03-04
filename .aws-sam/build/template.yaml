@@ -13,7 +13,7 @@ Metadata:
     Labels:
     - thetis-ims
     HomePageUrl: https://github.com/thetis-apps/BusinessCentralHttpsBridge
-    SemanticVersion: '0.0.4'
+    SemanticVersion: '0.0.2'
     SourceCodeUrl: https://github.com/thetis-apps/BusinessCentralHttpsBridge
 Parameters:
   ContextId:
@@ -25,22 +25,16 @@ Parameters:
     Description: Send all events to this address using POST.
     MinLength: '1'
 Resources:
-  Topic:
-    Type: AWS::SNS::Topic
-    Properties:
-      DisplayName: Dispatcher of events from Thetis IMS
   Transformer:
     Type: AWS::Serverless::Function
     Properties:
       Description: Function that runs when a delivery note is created.
       Runtime: nodejs12.x
       Handler: src/handlers/handler.transform
-      Policies:
-      - AmazonSNSFullAccess
       Environment:
         Variables:
-          Topic:
-            Ref: Topic
+          EndpointURL:
+            Ref: EndpointURL
       Events:
         Request:
           Type: EventBridgeRule
@@ -64,49 +58,6 @@ Resources:
           - DeadLetterQueue
           - Arn
       CodeUri: Transformer
-  Subscription:
-    Type: AWS::SNS::Subscription
-    Properties:
-      TopicArn:
-        Ref: Topic
-      Protocol: HTTPS
-      RawMessageDelivery: true
-      Endpoint:
-        Ref: EndpointURL
-      RedrivePolicy:
-        deadLetterTargetArn:
-          Fn::GetAtt:
-          - DeadLetterQueue
-          - Arn
-      DeliveryPolicy:
-        healthyRetryPolicy:
-          minDelayTarget: 20
-          maxDelayTarget: 300
-          numRetries: 20
-          numNoDelayRetries: 3
-          numMinDelayRetries: 3
-          numMaxDelayRetries: 3
-          backoffFunction: exponential
-        throttlePolicy:
-          maxReceivesPerSecond: 10
-  DeadLetterQueuePolicy:
-    Type: AWS::SQS::QueuePolicy
-    Properties:
-      PolicyDocument:
-        Statement:
-        - Effect: Allow
-          Principal: '*'
-          Action: sqs:SendMessage
-          Resource:
-            Fn::GetAtt:
-            - DeadLetterQueue
-            - Arn
-          Condition:
-            ArnEquals:
-              aws:SourceArn:
-                Ref: Topic
-      Queues:
-      - Ref: DeadLetterQueue
   DeadLetterQueue:
     Type: AWS::SQS::Queue
     Properties: {}
